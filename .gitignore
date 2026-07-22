@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+output/
+input/
+*.log
+~$*.xlsx
+.DS_Store
+.idea/
+*.egg-info/
+.streamlit/secrets.toml
