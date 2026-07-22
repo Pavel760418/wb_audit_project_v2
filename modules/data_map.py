@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from config import MIN_DATA_FOR_BLOCK, REPORTS_REGISTRY
+from config import BLOCK_LABELS, MIN_DATA_FOR_BLOCK, REPORTS_REGISTRY
 
 
 def build_data_availability_map(load_results: dict) -> dict:
@@ -42,6 +42,33 @@ def build_block_status_map(load_results: dict) -> dict:
         else:
             block_status[block] = "none"
     return block_status
+
+
+def build_block_limitations(load_results: dict) -> list:
+    """Формирует список ограничений анализа: какие блоки посчитаны не полностью и почему.
+
+    Возвращает строки только для блоков со статусом "partial"/"none", чтобы явно
+    показать пользователю, каких данных не хватает (принцип «мягкой деградации»).
+    """
+    block_status = build_block_status_map(load_results)
+    limitations = []
+    for block, required_reports in MIN_DATA_FOR_BLOCK.items():
+        status = block_status.get(block, "none")
+        if status == "full":
+            continue
+        missing_titles = []
+        for report_key in required_reports:
+            result = load_results.get(report_key)
+            if not result or result.status not in ("ok", "warning"):
+                missing_titles.append(REPORTS_REGISTRY.get(report_key, {}).get("title", report_key))
+        limitations.append(
+            {
+                "block": BLOCK_LABELS.get(block, block),
+                "status": status,
+                "missing": missing_titles,
+            }
+        )
+    return limitations
 
 
 def build_summary_table(load_results: dict) -> list:
