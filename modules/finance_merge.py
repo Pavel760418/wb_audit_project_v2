@@ -16,10 +16,16 @@ from __future__ import annotations
 import pandas as pd
 
 from config import COLUMN_MAPPING
-from modules.columns import find_column
+from modules.columns import find_column, normalize_name
 from modules.loader import LoadResult, get_source_name, load_excel_report
 
 _FINANCE_MAPPING = COLUMN_MAPPING["finance_weekly"]
+
+# Поля, у которых в отчёте WB ровно одна колонка — их безопасно приводить к
+# каноническому имени, чтобы недельные файлы совпадали по структуре при объединении.
+# Поле "penalty" НЕ нормализуется: в отчёте WB удержания разбиты на несколько
+# колонок (штрафы, удержания, прочие удержания), которые нельзя схлопывать в одну.
+_SINGLE_VALUE_FIELDS = ("sku", "date", "amount", "logistics", "storage")
 
 
 def _normalize_to_list(value) -> list:
@@ -31,12 +37,19 @@ def _normalize_to_list(value) -> list:
 
 
 def _alias_to_canonical() -> dict:
-    """Строит соответствие «вариант подписи (в нижнем регистре) → каноническая подпись»."""
+    """Соответствие «вариант подписи (нормализованный) → каноническая подпись».
+
+    Строится только для одно-колоночных полей — многоколоночные удержания
+    остаются под своими исходными названиями, чтобы не потерять данные.
+    """
     mapping = {}
-    for aliases in _FINANCE_MAPPING.values():
+    for field in _SINGLE_VALUE_FIELDS:
+        aliases = _FINANCE_MAPPING.get(field, [])
+        if not aliases:
+            continue
         canonical = aliases[0]
         for alias in aliases:
-            mapping[alias.strip().lower()] = canonical
+            mapping[normalize_name(alias)] = canonical
     return mapping
 
 
@@ -54,18 +67,30 @@ def count_finance_columns(df: pd.DataFrame) -> int:
 
 
 def normalize_finance_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Приводит названия колонок к каноническим, чтобы файлы недель совпадали по структуре."""
+    """Приводит названия одно-колоночных полей к каноническим для совпадения недель.
+
+    Переименование НЕ создаёт дубликатов и НЕ удаляет колонки: если каноническое
+    имя уже занято другой колонкой, исходная колонка сохраняется под своим именем.
+    Так данные не теряются (в отличие от прежнего схлопывания дубликатов).
+    """
     alias_map = _alias_to_canonical()
+    existing = {normalize_name(c) for c in df.columns}
+    taken = set()
     rename = {}
     for col in df.columns:
-        key = str(col).strip().lower()
-        canonical = alias_map.get(key)
-        if canonical and canonical != col:
+        canonical = alias_map.get(normalize_name(col))
+        if not canonical or canonical == col:
+            taken.add(normalize_name(col))
+            continue
+        canonical_norm = normalize_name(canonical)
+        # Переименовываем только если каноническое имя ещё не занято и не назначено.
+        if canonical_norm not in existing and canonical_norm not in taken:
             rename[col] = canonical
+            taken.add(canonical_norm)
+        else:
+            taken.add(normalize_name(col))
     if rename:
         df = df.rename(columns=rename)
-    # На случай, если после переименования появились одинаковые колонки — оставляем первую.
-    df = df.loc[:, ~df.columns.duplicated()]
     return df
 
 

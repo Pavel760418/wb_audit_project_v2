@@ -62,6 +62,28 @@ def find_column(df: pd.DataFrame, candidates) -> Optional[str]:
     return None
 
 
+def find_all_columns(df: pd.DataFrame, candidates) -> list:
+    """Находит ВСЕ различные колонки, подходящие под список названий.
+
+    Полезно для полей, которые в отчёте WB разбиты на несколько колонок
+    (например, удержания: «Общая сумма штрафов» и «Удержания» одновременно).
+    Возвращает исходные названия колонок в порядке их следования в df, без повторов.
+    """
+    if df is None or len(df.columns) == 0:
+        return []
+
+    norm_candidates = [normalize_name(c) for c in candidates if normalize_name(c)]
+    matched = []
+    for col in df.columns:
+        norm_col = normalize_name(col)
+        for nc in norm_candidates:
+            if norm_col == nc or nc in norm_col or norm_col in nc:
+                if col not in matched:
+                    matched.append(col)
+                break
+    return matched
+
+
 def to_number(series: pd.Series) -> pd.Series:
     """Аккуратно приводит колонку к числам.
 
@@ -86,3 +108,11 @@ def sum_column(df: pd.DataFrame, column: Optional[str]) -> float:
     if not column or column not in df.columns:
         return 0.0
     return float(to_number(df[column]).sum())
+
+
+def sum_columns(df: pd.DataFrame, columns) -> float:
+    """Безопасно суммирует несколько колонок (например, все виды удержаний)."""
+    total = 0.0
+    for column in columns:
+        total += sum_column(df, column)
+    return total
