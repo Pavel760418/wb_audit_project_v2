@@ -16,6 +16,7 @@ from __future__ import annotations
 import pandas as pd
 
 from config import COLUMN_MAPPING
+from modules.columns import find_column
 from modules.loader import LoadResult, get_source_name, load_excel_report
 
 _FINANCE_MAPPING = COLUMN_MAPPING["finance_weekly"]
@@ -39,17 +40,17 @@ def _alias_to_canonical() -> dict:
     return mapping
 
 
-def _known_finance_columns() -> set:
-    known = set()
-    for aliases in _FINANCE_MAPPING.values():
-        known.update(alias.strip().lower() for alias in aliases)
-    return known
-
-
 def count_finance_columns(df: pd.DataFrame) -> int:
-    """Сколько распознанных финансовых колонок присутствует в файле."""
-    known = _known_finance_columns()
-    return sum(1 for col in df.columns if str(col).strip().lower() in known)
+    """Сколько полей финансового отчёта удалось сопоставить в файле.
+
+    Использует устойчивый поиск (точное совпадение → по вхождению), чтобы
+    распознавать длинные официальные названия колонок Wildberries.
+    """
+    matched = 0
+    for aliases in _FINANCE_MAPPING.values():
+        if find_column(df, aliases) is not None:
+            matched += 1
+    return matched
 
 
 def normalize_finance_columns(df: pd.DataFrame) -> pd.DataFrame:
