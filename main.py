@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from config import REPORTS_REGISTRY
+from wb_config import REPORTS_REGISTRY
 from modules.loader import load_all_reports
 from modules.report_builder import build_report
 

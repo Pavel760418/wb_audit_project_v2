@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from config import COLUMN_MAPPING
+from wb_config import COLUMN_MAPPING
 from modules.columns import find_all_columns, find_column, sum_column, sum_columns
 
 

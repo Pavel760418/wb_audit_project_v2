@@ -7,8 +7,19 @@
 """
 from __future__ import annotations
 
-from config import COLUMN_MAPPING, FINANCE_FIELD_LABELS
+from wb_config import COLUMN_MAPPING
 from modules.columns import find_all_columns
+
+# Подписи живут здесь (а не только в wb_config), чтобы диагностика не падала
+# из‑за устаревшего кэша модуля настроек на Streamlit Cloud.
+_FINANCE_FIELD_LABELS = {
+    "sku": "Артикул",
+    "date": "Дата",
+    "amount": "Сумма к перечислению",
+    "logistics": "Логистика",
+    "storage": "Хранение",
+    "penalty": "Штрафы и удержания",
+}
 
 
 def diagnose_mapping(df, mapping: dict, labels: dict | None = None) -> list:
@@ -41,5 +52,5 @@ def finance_column_diagnostics(load_results: dict) -> dict | None:
     return {
         "available_columns": [str(c) for c in df.columns],
         "rows": int(len(df)),
-        "fields": diagnose_mapping(df, COLUMN_MAPPING["finance_weekly"], FINANCE_FIELD_LABELS),
+        "fields": diagnose_mapping(df, COLUMN_MAPPING["finance_weekly"], _FINANCE_FIELD_LABELS),
     }

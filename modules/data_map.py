@@ -1,10 +1,10 @@
 """
 Карта доступности входных данных и статусов аналитических блоков.
-Строится на основе результатов loader.py и реестра MIN_DATA_FOR_BLOCK из config.py.
+Строится на основе результатов loader.py и реестра MIN_DATA_FOR_BLOCK из wb_config.py.
 """
 from __future__ import annotations
 
-from config import BLOCK_LABELS, MIN_DATA_FOR_BLOCK, REPORTS_REGISTRY
+from wb_config import BLOCK_LABELS, MIN_DATA_FOR_BLOCK, REPORTS_REGISTRY
 
 
 def build_data_availability_map(load_results: dict) -> dict:

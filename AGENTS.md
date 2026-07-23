@@ -17,5 +17,5 @@ This is a small, self-contained Python project (no database, no external service
 ### Testing notes
 - There is no test suite, linter config, or build step in this repo. "Build/run" == running Streamlit or the CLI.
 - Core behavior is **graceful degradation**: missing/invalid input files never crash the pipeline; the corresponding report blocks are marked partial or "no data". The only report expected for a meaningful run is the weekly finance report (`finance_weekly`), which drives sales and cabinet unit-economics blocks.
-- To smoke-test end to end, feed an `.xlsx` with columns like `Артикул поставщика`, `Дата продажи`, `К перечислению`, `Логистика`, `Хранение`, `Штрафы` (see `config.py` `COLUMN_MAPPING`) into the finance uploader, then click "Запустить расчёт".
+- To smoke-test end to end, feed an `.xlsx` with columns like `Артикул поставщика`, `Дата продажи`, `К перечислению`, `Логистика`, `Хранение`, `Штрафы` (see `wb_config.py` `COLUMN_MAPPING`) into the finance uploader, then click "Запустить расчёт".
 - `output/` and `input/` are gitignored working dirs.

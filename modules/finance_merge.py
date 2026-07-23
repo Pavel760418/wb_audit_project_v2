@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from config import COLUMN_MAPPING
+from wb_config import COLUMN_MAPPING
 from modules.columns import find_column, normalize_name
 from modules.loader import LoadResult, get_source_name, load_excel_report
 

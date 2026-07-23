@@ -16,9 +16,10 @@ from datetime import date
 
 import streamlit as st
 
-from config import GROUP_MANUAL, GROUP_OPTIONAL, GROUP_REQUIRED, REPORTS_REGISTRY
+from wb_config import GROUP_MANUAL, GROUP_OPTIONAL, GROUP_REQUIRED, REPORTS_REGISTRY
 from main import run_audit_pipeline
 from modules import templates
+from modules.diagnostics import finance_column_diagnostics
 
 st.set_page_config(page_title="Аудит кабинета Wildberries", layout="wide")
 
@@ -141,7 +142,7 @@ for report_key, meta in REPORTS_REGISTRY.items():
             "Состояние": state,
         }
     )
-st.dataframe(status_rows, use_container_width=True, hide_index=True)
+st.dataframe(status_rows, width="stretch", hide_index=True)
 
 finance_selected = _count_selected(uploaded_files.get("finance_weekly"))
 if finance_selected == 0:
@@ -177,6 +178,24 @@ if run_clicked:
         st.session_state["load_results"] = load_results
     st.success("Расчёт завершён на основе реально загруженных данных.")
 
+st.divider()
+
+# ----------------------------------------------------------------------------
+# 7. Скачать итоговый Excel (сразу после расчёта — до диагностики,
+# чтобы кнопка не пропадала, если ниже что-то упадёт)
+# ----------------------------------------------------------------------------
+st.header("7. Скачать итоговый Excel")
+if "report_bytes" in st.session_state:
+    st.download_button(
+        label="Скачать итоговый Excel-файл",
+        data=st.session_state["report_bytes"],
+        file_name="WB_Audit_Report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+else:
+    st.info("Итоговый файл появится здесь после запуска расчёта.")
+
+# Диагностика результатов — после кнопки скачивания.
 if "load_results" in st.session_state:
     load_results = st.session_state["load_results"]
 
@@ -197,7 +216,7 @@ if "load_results" in st.session_state:
                 }
                 for d in finance.file_details
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         for warn in getattr(finance, "warnings", []) or []:
@@ -214,13 +233,16 @@ if "load_results" in st.session_state:
                 "Найденные колонки": ", ".join(result.detected_columns) if result.detected_columns else "—",
             }
         )
-    st.dataframe(diag_rows, use_container_width=True, hide_index=True)
+    st.dataframe(diag_rows, width="stretch", hide_index=True)
 
     # Диагностика сопоставления колонок финансового отчёта — помогает понять,
     # почему блок посчитан частично или выручка равна нулю.
-    from modules.diagnostics import finance_column_diagnostics
+    try:
+        finance_diag = finance_column_diagnostics(load_results)
+    except Exception as exc:  # noqa: BLE001 — UI не должен падать из‑за диагностики
+        st.warning(f"Не удалось построить диагностику колонок: {exc}")
+        finance_diag = None
 
-    finance_diag = finance_column_diagnostics(load_results)
     if finance_diag:
         with st.expander("Диагностика распознавания колонок (финансовый отчёт)"):
             unmatched = [f["label"] for f in finance_diag["fields"] if not f["matched"]]
@@ -237,27 +259,11 @@ if "load_results" in st.session_state:
                     }
                     for f in finance_diag["fields"]
                 ],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st.caption("Все колонки, найденные в файле:")
             st.write(", ".join(finance_diag["available_columns"]) or "—")
-
-st.divider()
-
-# ----------------------------------------------------------------------------
-# 7. Скачать итоговый Excel
-# ----------------------------------------------------------------------------
-st.header("7. Скачать итоговый Excel")
-if "report_bytes" in st.session_state:
-    st.download_button(
-        label="Скачать итоговый Excel-файл",
-        data=st.session_state["report_bytes"],
-        file_name="WB_Audit_Report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-else:
-    st.info("Итоговый файл появится здесь после запуска расчёта.")
 
 st.divider()
 
