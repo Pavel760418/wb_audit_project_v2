@@ -216,6 +216,33 @@ if "load_results" in st.session_state:
         )
     st.dataframe(diag_rows, use_container_width=True, hide_index=True)
 
+    # Диагностика сопоставления колонок финансового отчёта — помогает понять,
+    # почему блок посчитан частично или выручка равна нулю.
+    from modules.diagnostics import finance_column_diagnostics
+
+    finance_diag = finance_column_diagnostics(load_results)
+    if finance_diag:
+        with st.expander("Диагностика распознавания колонок (финансовый отчёт)"):
+            unmatched = [f["label"] for f in finance_diag["fields"] if not f["matched"]]
+            if unmatched:
+                st.warning("Не удалось сопоставить поля: " + ", ".join(unmatched))
+            else:
+                st.success("Все ключевые поля финансового отчёта распознаны.")
+            st.dataframe(
+                [
+                    {
+                        "Поле": f["label"],
+                        "Сопоставленная колонка": f["matched"] or "не сопоставлено",
+                        "Допустимые варианты": ", ".join(f["candidates"]),
+                    }
+                    for f in finance_diag["fields"]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.caption("Все колонки, найденные в файле:")
+            st.write(", ".join(finance_diag["available_columns"]) or "—")
+
 st.divider()
 
 # ----------------------------------------------------------------------------
