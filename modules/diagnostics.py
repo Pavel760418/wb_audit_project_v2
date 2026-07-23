@@ -8,23 +8,23 @@
 from __future__ import annotations
 
 from config import COLUMN_MAPPING, FINANCE_FIELD_LABELS
-from modules.columns import find_column
+from modules.columns import find_all_columns
 
 
 def diagnose_mapping(df, mapping: dict, labels: dict | None = None) -> list:
     """Возвращает список строк диагностики для одного отчёта.
 
-    Каждая строка: поле, человеко-понятная подпись, сопоставленная колонка,
-    список допустимых вариантов названий.
+    Каждая строка: поле, человеко-понятная подпись, сопоставленные колонки (может
+    быть несколько, например для удержаний), список допустимых вариантов названий.
     """
     rows = []
     for field, aliases in mapping.items():
-        matched = find_column(df, aliases) if df is not None else None
+        matched_cols = find_all_columns(df, aliases) if df is not None else []
         rows.append(
             {
                 "field": field,
                 "label": (labels or {}).get(field, field),
-                "matched": matched,
+                "matched": ", ".join(matched_cols) if matched_cols else "",
                 "candidates": list(aliases),
             }
         )

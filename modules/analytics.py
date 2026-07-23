@@ -14,7 +14,7 @@ from __future__ import annotations
 import pandas as pd
 
 from config import COLUMN_MAPPING
-from modules.columns import find_column, sum_column
+from modules.columns import find_all_columns, find_column, sum_column, sum_columns
 
 
 def _finance_candidates(field: str) -> list:
@@ -43,7 +43,7 @@ def calc_sales_summary(load_results: dict) -> dict:
     total_amount = sum_column(df, amount_col)
     return {
         "status": "ok",
-        "total_amount": float(total_amount),
+        "total_amount": round(float(total_amount), 2),
         "rows": int(len(df)),
         "matched_column": amount_col,
         "available_columns": available,
@@ -62,12 +62,14 @@ def calc_unit_economics_cabinet(load_results: dict) -> dict:
     amount_col = find_column(df, _finance_candidates("amount"))
     logistics_col = find_column(df, _finance_candidates("logistics"))
     storage_col = find_column(df, _finance_candidates("storage"))
-    penalty_col = find_column(df, _finance_candidates("penalty"))
+    # Удержания в отчёте WB разбиты на несколько колонок (штрафы, удержания и т.п.) —
+    # суммируем все найденные, чтобы чистый результат был полным.
+    penalty_cols = find_all_columns(df, _finance_candidates("penalty"))
 
     revenue = sum_column(df, amount_col)
     logistics = sum_column(df, logistics_col)
     storage = sum_column(df, storage_col)
-    penalties = sum_column(df, penalty_col)
+    penalties = sum_columns(df, penalty_cols)
 
     net_result = revenue - logistics - storage - penalties
 
@@ -75,7 +77,7 @@ def calc_unit_economics_cabinet(load_results: dict) -> dict:
         "amount": amount_col,
         "logistics": logistics_col,
         "storage": storage_col,
-        "penalty": penalty_col,
+        "penalty": ", ".join(penalty_cols) if penalty_cols else None,
     }
     missing_fields = [
         label
@@ -83,18 +85,18 @@ def calc_unit_economics_cabinet(load_results: dict) -> dict:
             ("выручка/сумма", amount_col),
             ("логистика", logistics_col),
             ("хранение", storage_col),
-            ("штрафы", penalty_col),
+            ("штрафы и удержания", penalty_cols or None),
         ]
-        if col is None
+        if not col
     ]
 
     return {
         "status": "partial" if missing_fields else "ok",
-        "revenue": float(revenue),
-        "logistics": float(logistics),
-        "storage": float(storage),
-        "penalties": float(penalties),
-        "net_result": float(net_result),
+        "revenue": round(float(revenue), 2),
+        "logistics": round(float(logistics), 2),
+        "storage": round(float(storage), 2),
+        "penalties": round(float(penalties), 2),
+        "net_result": round(float(net_result), 2),
         "missing_fields": missing_fields,
         "matched_columns": matched_columns,
         "available_columns": [str(c) for c in df.columns],
@@ -126,7 +128,8 @@ def calc_unit_economics_sku(load_results: dict) -> dict:
             .apply(lambda s: float(pd.to_numeric(s, errors="coerce").sum()))
         )
         sku_revenue = [
-            {"sku": str(idx), "revenue": float(val)} for idx, val in grouped.sort_values(ascending=False).items()
+            {"sku": str(idx), "revenue": round(float(val), 2)}
+            for idx, val in grouped.sort_values(ascending=False).items()
         ]
 
     if not has_cost:
