@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 
-from config import COLUMN_MAPPING, FINANCE_FIELD_LABELS
+from wb_config import COLUMN_MAPPING, FINANCE_FIELD_LABELS
 from modules.columns import find_all_columns
 
 
