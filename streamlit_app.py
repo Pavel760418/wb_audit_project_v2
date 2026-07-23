@@ -142,7 +142,7 @@ for report_key, meta in REPORTS_REGISTRY.items():
             "Состояние": state,
         }
     )
-st.dataframe(status_rows, use_container_width=True, hide_index=True)
+st.dataframe(status_rows, width="stretch", hide_index=True)
 
 finance_selected = _count_selected(uploaded_files.get("finance_weekly"))
 if finance_selected == 0:
@@ -216,7 +216,7 @@ if "load_results" in st.session_state:
                 }
                 for d in finance.file_details
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         for warn in getattr(finance, "warnings", []) or []:
@@ -233,7 +233,7 @@ if "load_results" in st.session_state:
                 "Найденные колонки": ", ".join(result.detected_columns) if result.detected_columns else "—",
             }
         )
-    st.dataframe(diag_rows, use_container_width=True, hide_index=True)
+    st.dataframe(diag_rows, width="stretch", hide_index=True)
 
     # Диагностика сопоставления колонок финансового отчёта — помогает понять,
     # почему блок посчитан частично или выручка равна нулю.
@@ -259,7 +259,7 @@ if "load_results" in st.session_state:
                     }
                     for f in finance_diag["fields"]
                 ],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st.caption("Все колонки, найденные в файле:")
